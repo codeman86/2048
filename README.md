@@ -1,12 +1,23 @@
-# 2048
+# Gridline Arcade
 
-A single-file, browser-based 2048 game with a dark green, Tron-inspired visual style.
+A small collection of single-file browser games with a dark green, Tron-inspired visual style.
 
 ## Play
 
-Open `2048.html` in a browser.
+Open `index.html` in a browser and choose a game.
 
-Controls:
+Games:
+
+- `2048.html`: grid puzzle inspired by 2048.
+- `star-swarm.html`: retro arcade space shooter.
+
+## Star Swarm Controls
+
+- Use Left/Right arrow keys or A/D on desktop.
+- Press Space to fire.
+- Drag on touch devices to move and hold to fire.
+
+## 2048 Controls
 
 - Use arrow keys or WASD on desktop.
 - Swipe on the board on touch devices.
@@ -16,6 +27,7 @@ Controls:
 
 - Smooth animated tile movement
 - Merge and spawn animations
+- Arcade waves, dive attacks, tractor beams, and twin-fire rescue rewards
 - Responsive layout for desktop and mobile
 - Local best score saved in the browser
 - No build step or external dependencies

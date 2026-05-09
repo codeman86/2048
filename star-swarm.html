@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Star Swarm</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #020403;
+      --charcoal: #07100b;
+      --panel: rgba(4, 20, 12, 0.88);
+      --panel-strong: rgba(8, 37, 22, 0.94);
+      --grid: #0b2d1b;
+      --neon: #39ff88;
+      --neon-soft: rgba(57, 255, 136, 0.26);
+      --neon-mid: rgba(57, 255, 136, 0.52);
+      --text: #e8fff2;
+      --muted: #8ccfaa;
+      --danger: #ff4f7b;
+      --warning: #ffe66d;
+      --radius: 8px;
+      --field-width: min(94vw, 520px);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(57, 255, 136, 0.11), transparent 34%),
+        linear-gradient(180deg, var(--charcoal) 0%, var(--bg) 42%, #000 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px 14px;
+      overflow-x: hidden;
+    }
+
+    .game-shell {
+      width: min(100%, 720px);
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+    }
+
+    .hud {
+      min-width: 0;
+      text-align: center;
+      width: 100%;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(3rem, 11vw, 6.8rem);
+      line-height: 0.88;
+      letter-spacing: 0;
+      color: #f2fff7;
+      text-shadow:
+        0 0 8px rgba(57, 255, 136, 0.75),
+        0 0 28px rgba(57, 255, 136, 0.45),
+        0 0 64px rgba(57, 255, 136, 0.22);
+    }
+
+    .subtitle {
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+      margin: 14px auto 18px;
+    }
+
+    .scores {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 128px));
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .score-box {
+      border: 1px solid var(--neon-mid);
+      background: linear-gradient(180deg, rgba(57, 255, 136, 0.14), rgba(2, 10, 6, 0.7));
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      box-shadow: inset 0 0 18px rgba(57, 255, 136, 0.08), 0 0 20px rgba(57, 255, 136, 0.1);
+      min-width: 0;
+    }
+
+    .score-label {
+      color: var(--muted);
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .score-value {
+      display: block;
+      font-size: clamp(1.15rem, 4vw, 1.7rem);
+      font-weight: 800;
+      line-height: 1.05;
+      margin-top: 4px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid var(--neon);
+      border-radius: var(--radius);
+      background: rgba(4, 18, 11, 0.92);
+      color: var(--text);
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.86rem;
+      font-weight: 800;
+      min-height: 44px;
+      padding: 0 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      box-shadow: 0 0 18px rgba(57, 255, 136, 0.18), inset 0 0 12px rgba(57, 255, 136, 0.08);
+      transition: transform 140ms ease, background 140ms ease, box-shadow 140ms ease;
+    }
+
+    button:hover,
+    button:focus-visible {
+      background: rgba(57, 255, 136, 0.15);
+      box-shadow: 0 0 26px rgba(57, 255, 136, 0.34), inset 0 0 16px rgba(57, 255, 136, 0.12);
+      outline: none;
+      transform: translateY(-1px);
+    }
+
+    .board-panel {
+      position: relative;
+      border: 1px solid var(--neon-mid);
+      border-radius: 14px;
+      background: var(--panel);
+      padding: clamp(10px, 2vw, 18px);
+      box-shadow:
+        0 0 0 1px rgba(57, 255, 136, 0.08),
+        0 0 36px rgba(57, 255, 136, 0.17),
+        inset 0 0 44px rgba(57, 255, 136, 0.07);
+      width: fit-content;
+    }
+
+    .board-panel::before,
+    .board-panel::after {
+      content: "";
+      position: absolute;
+      width: 38%;
+      height: 1px;
+      background: var(--neon);
+      box-shadow: 0 0 12px var(--neon);
+      pointer-events: none;
+    }
+
+    .board-panel::before {
+      left: 18px;
+      top: -1px;
+    }
+
+    .board-panel::after {
+      right: 18px;
+      bottom: -1px;
+    }
+
+    .game-field {
+      width: var(--field-width);
+      aspect-ratio: 3 / 4;
+      max-height: calc(100vh - 48px);
+      display: block;
+      border-radius: 10px;
+      background:
+        linear-gradient(135deg, rgba(57, 255, 136, 0.08), transparent 38%),
+        var(--grid);
+      touch-action: none;
+      user-select: none;
+    }
+
+    .message {
+      position: absolute;
+      inset: clamp(10px, 2vw, 18px);
+      align-items: center;
+      background: rgba(1, 9, 5, 0.88);
+      border: 1px solid var(--neon);
+      border-radius: 10px;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      z-index: 5;
+    }
+
+    .message.show {
+      display: flex;
+    }
+
+    .message strong {
+      color: var(--neon);
+      font-size: clamp(2rem, 8vw, 4rem);
+      line-height: 1;
+      text-shadow: 0 0 24px var(--neon-mid);
+      text-transform: uppercase;
+    }
+
+    .message span {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 12px 0 20px;
+      max-width: 25rem;
+    }
+
+    @media (max-width: 700px) {
+      body {
+        align-items: start;
+        padding: 16px 10px;
+      }
+
+      .game-shell {
+        gap: 14px;
+      }
+
+      .subtitle {
+        font-size: 0.95rem;
+        margin: 12px auto 14px;
+      }
+
+      .scores {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .controls button {
+        flex: 1 1 130px;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .subtitle {
+        display: none;
+      }
+
+      .game-field {
+        width: min(96vw, 520px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell" aria-label="Star Swarm game">
+    <section class="hud">
+      <h1>Star Swarm</h1>
+      <p class="subtitle">Break the formation, survive the dives, and clear each wave before the swarm overwhelms the grid.</p>
+
+      <div class="scores" aria-live="polite">
+        <div class="score-box">
+          <span class="score-label">Score</span>
+          <span class="score-value" id="score">0</span>
+        </div>
+        <div class="score-box">
+          <span class="score-label">Best</span>
+          <span class="score-value" id="best">0</span>
+        </div>
+        <div class="score-box">
+          <span class="score-label">Wave</span>
+          <span class="score-value" id="wave">1</span>
+        </div>
+        <div class="score-box">
+          <span class="score-label">Lives</span>
+          <span class="score-value" id="lives">3</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button type="button" id="newGame">New Game</button>
+        <button type="button" id="pauseGame">Pause</button>
+      </div>
+    </section>
+
+    <section class="board-panel">
+      <canvas class="game-field" id="game" width="780" height="1040" aria-label="Star Swarm playfield"></canvas>
+      <div class="message show" id="message" aria-live="assertive">
+        <strong id="messageTitle">Star Swarm</strong>
+        <span id="messageText">Arrow keys move. Space fires. On touch screens, drag to fly and hold to fire.</span>
+        <button type="button" id="messageButton">Start</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "star-swarm-best";
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreElement = document.getElementById("score");
+    const bestElement = document.getElementById("best");
+    const waveElement = document.getElementById("wave");
+    const livesElement = document.getElementById("lives");
+    const messageElement = document.getElementById("message");
+    const messageTitle = document.getElementById("messageTitle");
+    const messageText = document.getElementById("messageText");
+    const messageButton = document.getElementById("messageButton");
+    const newGameButton = document.getElementById("newGame");
+    const pauseButton = document.getElementById("pauseGame");
+    const width = canvas.width;
+    const height = canvas.height;
+    const maxLives = 5;
+    const bonusLifeEvery = 8000;
+    const keys = new Set();
+    const rand = (min, max) => min + Math.random() * (max - min);
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+    let best = Number(localStorage.getItem(storageKey)) || 0;
+    let score = 0;
+    let wave = 1;
+    let lives = 3;
+    let nextBonusLife = bonusLifeEvery;
+    let running = false;
+    let paused = false;
+    let gameOver = false;
+    let lastTime = 0;
+    let fireCooldown = 0;
+    let diveTimer = 1.8;
+    let enemyFireTimer = 0.8;
+    let waveTimer = 0;
+    let shake = 0;
+    let tractorGrip = 0;
+    let twinFireActive = false;
+    let tractorUsedThisWave = false;
+    let touchActive = false;
+    let touchFiring = false;
+    let player;
+    let bullets = [];
+    let enemyBullets = [];
+    let enemies = [];
+    let particles = [];
+    let stars = [];
+
+    bestElement.textContent = best;
+
+    function resetPlayer() {
+      player = {
+        x: width / 2,
+        y: height - 96,
+        width: 54,
+        height: 54,
+        speed: 520,
+        invincible: 1.7
+      };
+    }
+
+    function createStars() {
+      stars = Array.from({ length: 86 }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        size: rand(1, 2.8),
+        speed: rand(22, 84),
+        alpha: rand(0.18, 0.74)
+      }));
+    }
+
+    function createWave() {
+      enemies = [];
+      tractorUsedThisWave = false;
+      const cols = 8;
+      const rows = 4 + Math.min(2, Math.floor((wave - 1) / 3));
+      const gapX = 76;
+      const gapY = 62;
+      const startX = width / 2 - ((cols - 1) * gapX) / 2;
+      const startY = 112;
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          enemies.push({
+            homeX: startX + col * gapX,
+            homeY: startY + row * gapY,
+            x: startX + col * gapX,
+            y: startY + row * gapY,
+            row,
+            col,
+            size: row === 0 ? 42 : 38,
+            alive: true,
+            diving: false,
+            tractor: false,
+            tractorActive: false,
+            capturedShip: false,
+            diveT: 0,
+            diveDuration: rand(1.7, 2.35),
+            phase: rand(0, Math.PI * 2),
+            value: row === 0 ? 180 : 100,
+            shootCooldown: rand(2.3, 6.1)
+          });
+        }
+      }
+
+      diveTimer = Math.max(0.5, 1.7 - wave * 0.08);
+      waveTimer = 1.4;
+    }
+
+    function startGame() {
+      score = 0;
+      wave = 1;
+      lives = 3;
+      nextBonusLife = bonusLifeEvery;
+      bullets = [];
+      enemyBullets = [];
+      particles = [];
+      twinFireActive = false;
+      running = true;
+      paused = false;
+      gameOver = false;
+      fireCooldown = 0;
+      enemyFireTimer = 1.1;
+      lastTime = performance.now();
+      pauseButton.textContent = "Pause";
+      messageElement.classList.remove("show");
+      resetPlayer();
+      createStars();
+      createWave();
+      updateHud();
+      requestAnimationFrame(loop);
+    }
+
+    function updateHud() {
+      scoreElement.textContent = score;
+      bestElement.textContent = best;
+      waveElement.textContent = wave;
+      livesElement.textContent = lives;
+    }
+
+    function addScore(points) {
+      score += points;
+      while (score >= nextBonusLife) {
+        if (lives < maxLives) {
+          lives += 1;
+          spawnParticles(player.x, player.y - 28, "#ffe66d", 24);
+        }
+        nextBonusLife += bonusLifeEvery;
+      }
+      updateHud();
+    }
+
+    function showMessage(title, text, action) {
+      messageTitle.textContent = title;
+      messageText.textContent = text;
+      messageButton.textContent = action;
+      messageElement.classList.add("show");
+    }
+
+    function togglePause() {
+      if (!running || gameOver) return;
+      paused = !paused;
+      pauseButton.textContent = paused ? "Resume" : "Pause";
+      if (paused) {
+        showMessage("Paused", "The swarm is holding formation.", "Resume");
+      } else {
+        messageElement.classList.remove("show");
+        lastTime = performance.now();
+        requestAnimationFrame(loop);
+      }
+    }
+
+    function fire() {
+      if (fireCooldown > 0 || !running || paused || gameOver) return;
+      const barrels = twinFireActive ? [-14, 14] : [0];
+      barrels.forEach((offset) => {
+        bullets.push({
+          x: player.x + offset,
+          y: player.y - 34,
+          width: 6,
+          height: 24,
+          speed: 760
+        });
+      });
+      fireCooldown = 0.18;
+    }
+
+    function spawnParticles(x, y, color, count) {
+      for (let i = 0; i < count; i += 1) {
+        particles.push({
+          x,
+          y,
+          vx: rand(-180, 180),
+          vy: rand(-180, 180),
+          life: rand(0.32, 0.72),
+          maxLife: 0.72,
+          color,
+          size: rand(2, 5)
+        });
+      }
+    }
+
+    function hitPlayer() {
+      if (player.invincible > 0 || gameOver) return;
+      lives -= 1;
+      tractorGrip = 0;
+      twinFireActive = false;
+      shake = 14;
+      spawnParticles(player.x, player.y, "#ff4f7b", 28);
+      updateHud();
+
+      if (lives <= 0) {
+        endGame();
+        return;
+      }
+
+      resetPlayer();
+    }
+
+    function capturePlayer(enemy) {
+      if (player.invincible > 0 || !enemy || enemy.capturedShip || gameOver) return;
+      lives -= 1;
+      tractorGrip = 0;
+      twinFireActive = false;
+      shake = 12;
+      enemy.capturedShip = true;
+      enemy.tractor = false;
+      enemy.tractorActive = false;
+      enemy.diving = false;
+      enemy.x = enemy.homeX;
+      enemy.y = enemy.homeY;
+      spawnParticles(player.x, player.y, "#ffe66d", 26);
+      updateHud();
+
+      if (lives <= 0) {
+        endGame();
+        return;
+      }
+
+      resetPlayer();
+    }
+
+    function endGame() {
+      running = false;
+      gameOver = true;
+      if (score > best) {
+        best = score;
+        localStorage.setItem(storageKey, String(best));
+      }
+      updateHud();
+      showMessage("Game Over", "Final score: " + score + ". Clear more waves to push the best score higher.", "Restart");
+    }
+
+    function nextWave() {
+      wave += 1;
+      addScore(500 + wave * 100);
+      bullets = [];
+      enemyBullets = [];
+      createWave();
+      updateHud();
+    }
+
+    function selectDiver() {
+      const candidates = enemies.filter((enemy) => enemy.alive && !enemy.diving);
+      if (!candidates.length) return;
+      const enemy = candidates[Math.floor(Math.random() * candidates.length)];
+      enemy.diving = true;
+      enemy.tractor = !tractorUsedThisWave && wave > 1 && enemy.row === 0 && Math.random() < 0.34;
+      if (enemy.tractor) {
+        tractorUsedThisWave = true;
+      }
+      enemy.tractorActive = false;
+      enemy.diveT = 0;
+      enemy.diveDuration = enemy.tractor ? 3.2 : rand(1.55, Math.max(1.0, 2.25 - wave * 0.04));
+      enemy.startX = enemy.x;
+      enemy.startY = enemy.y;
+      enemy.targetX = clamp(player.x + rand(-130, 130), 60, width - 60);
+      enemy.curve = rand(-170, 170);
+    }
+
+    function update(dt) {
+      const formationSpeed = 58 + wave * 8;
+      const formationOffset = Math.sin(performance.now() / 720) * formationSpeed;
+      const playerMove = (keys.has("ArrowRight") || keys.has("d") || keys.has("D") ? 1 : 0) -
+        (keys.has("ArrowLeft") || keys.has("a") || keys.has("A") ? 1 : 0);
+      const firing = keys.has(" ") || keys.has("Spacebar") || touchFiring;
+      let caughtByTractor = false;
+      let tractorEnemy = null;
+
+      if (!touchActive) {
+        player.x = clamp(player.x + playerMove * player.speed * dt, 44, width - 44);
+      }
+
+      if (firing) fire();
+      fireCooldown = Math.max(0, fireCooldown - dt);
+      enemyFireTimer = Math.max(0, enemyFireTimer - dt);
+      player.invincible = Math.max(0, player.invincible - dt);
+      shake = Math.max(0, shake - 42 * dt);
+
+      stars.forEach((star) => {
+        star.y += star.speed * dt;
+        if (star.y > height) {
+          star.y = -8;
+          star.x = Math.random() * width;
+        }
+      });
+
+      bullets.forEach((bullet) => {
+        bullet.y -= bullet.speed * dt;
+      });
+      bullets = bullets.filter((bullet) => bullet.y + bullet.height > -20);
+
+      enemyBullets.forEach((bullet) => {
+        bullet.y += bullet.speed * dt;
+      });
+      enemyBullets = enemyBullets.filter((bullet) => bullet.y < height + 30);
+
+      diveTimer -= dt;
+      if (diveTimer <= 0) {
+        selectDiver();
+        diveTimer = Math.max(0.34, rand(0.75, 1.45) - wave * 0.045);
+      }
+
+      enemies.forEach((enemy) => {
+        if (!enemy.alive) return;
+
+        if (enemy.diving) {
+          enemy.diveT += dt / enemy.diveDuration;
+          const t = enemy.diveT;
+          if (enemy.tractor) {
+            const approach = Math.min(1, t / 0.28);
+            const retreat = t > 0.82 ? (t - 0.82) / 0.18 : 0;
+            enemy.tractorActive = t > 0.28 && t < 0.82;
+            enemy.x = enemy.startX + (enemy.targetX - enemy.startX) * approach;
+            enemy.y = enemy.startY + (190 - enemy.startY) * approach - retreat * 150;
+
+            if (enemy.tractorActive) {
+              const beamTop = enemy.y + 18;
+              const beamBottom = height - 74;
+              const beamProgress = clamp((player.y - beamTop) / (beamBottom - beamTop), 0, 1);
+              const halfWidth = 26 + beamProgress * 56;
+              const inBeam = player.y > beamTop && Math.abs(player.x - enemy.x) < halfWidth;
+              if (inBeam) {
+                caughtByTractor = true;
+                tractorEnemy = enemy;
+                player.x += (enemy.x - player.x) * Math.min(1, dt * 1.7);
+                tractorGrip += dt;
+              }
+            }
+          } else {
+            const arc = Math.sin(Math.PI * t);
+            enemy.x = enemy.startX + (enemy.targetX - enemy.startX) * t + enemy.curve * arc;
+            enemy.y = enemy.startY + (height - 118 - enemy.startY) * t + 80 * arc;
+          }
+          if (t >= 1) {
+            enemy.diving = false;
+            enemy.tractor = false;
+            enemy.tractorActive = false;
+            enemy.x = enemy.homeX + formationOffset;
+            enemy.y = enemy.homeY;
+          }
+        } else {
+          enemy.x = enemy.homeX + formationOffset;
+          enemy.y = enemy.homeY + Math.sin(performance.now() / 420 + enemy.phase) * 6;
+        }
+
+        enemy.shootCooldown -= dt;
+        if (enemy.shootCooldown <= 0 && enemyFireTimer <= 0 && enemy.y < player.y - 70) {
+          enemyBullets.push({
+            x: enemy.x,
+            y: enemy.y + 24,
+            width: 7,
+            height: 20,
+            speed: rand(225, 315) + wave * 10
+          });
+          enemy.shootCooldown = rand(2.6, 6.8) / Math.min(1.85, 1 + wave * 0.055);
+          enemyFireTimer = Math.max(0.28, 0.72 - wave * 0.025);
+        }
+      });
+
+      if (!caughtByTractor) {
+        tractorGrip = Math.max(0, tractorGrip - dt * 1.6);
+      } else if (tractorGrip > 1.35) {
+        capturePlayer(tractorEnemy);
+      }
+
+      particles.forEach((particle) => {
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.life -= dt;
+      });
+      particles = particles.filter((particle) => particle.life > 0);
+
+      checkCollisions();
+
+      if (enemies.every((enemy) => !enemy.alive)) {
+        waveTimer -= dt;
+        if (waveTimer <= 0) nextWave();
+      }
+    }
+
+    function rectsOverlap(a, b) {
+      return a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y;
+    }
+
+    function enemyRect(enemy) {
+      return {
+        x: enemy.x - enemy.size / 2,
+        y: enemy.y - enemy.size / 2,
+        width: enemy.size,
+        height: enemy.size
+      };
+    }
+
+    function checkCollisions() {
+      bullets.forEach((bullet) => {
+        enemies.forEach((enemy) => {
+          if (!enemy.alive || bullet.dead || !rectsOverlap(bullet, enemyRect(enemy))) return;
+          enemy.alive = false;
+          bullet.dead = true;
+          if (enemy.capturedShip) {
+            lives = Math.min(maxLives, lives + 1);
+            twinFireActive = true;
+            spawnParticles(player.x, player.y - 30, "#ffe66d", 30);
+          }
+          addScore(enemy.value + wave * 10);
+          spawnParticles(enemy.x, enemy.y, "#39ff88", 18);
+        });
+      });
+      bullets = bullets.filter((bullet) => !bullet.dead);
+
+      const playerRect = {
+        x: player.x - player.width / 2,
+        y: player.y - player.height / 2,
+        width: player.width,
+        height: player.height
+      };
+
+      enemyBullets.forEach((bullet) => {
+        if (bullet.dead || !rectsOverlap(bullet, playerRect)) return;
+        bullet.dead = true;
+        hitPlayer();
+      });
+      enemyBullets = enemyBullets.filter((bullet) => !bullet.dead);
+
+      enemies.forEach((enemy) => {
+        if (!enemy.alive || !rectsOverlap(enemyRect(enemy), playerRect)) return;
+        enemy.alive = false;
+        spawnParticles(enemy.x, enemy.y, "#ff4f7b", 22);
+        hitPlayer();
+      });
+    }
+
+    function drawShip(x, y, scale, color, shield) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.beginPath();
+      ctx.moveTo(0, -30 * scale);
+      ctx.lineTo(25 * scale, 24 * scale);
+      ctx.lineTo(0, 12 * scale);
+      ctx.lineTo(-25 * scale, 24 * scale);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
+      ctx.fill();
+      ctx.strokeStyle = "#e8fff2";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#020403";
+      ctx.fillRect(-6 * scale, -2 * scale, 12 * scale, 18 * scale);
+
+      if (shield) {
+        ctx.beginPath();
+        ctx.arc(0, 0, 39 * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(57, 255, 136, 0.52)";
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 22;
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
+    function drawEnemy(enemy) {
+      if (!enemy.alive) return;
+      const color = enemy.diving ? "#ff4f7b" : enemy.row === 0 ? "#ffe66d" : "#39ff88";
+      const size = enemy.size;
+
+      ctx.save();
+      ctx.translate(enemy.x, enemy.y);
+      ctx.rotate(Math.sin(performance.now() / 180 + enemy.phase) * 0.08);
+      ctx.shadowColor = color;
+      ctx.shadowBlur = enemy.diving ? 24 : 16;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.42);
+      ctx.lineTo(size * 0.48, size * 0.16);
+      ctx.lineTo(size * 0.18, size * 0.4);
+      ctx.lineTo(0, size * 0.18);
+      ctx.lineTo(-size * 0.18, size * 0.4);
+      ctx.lineTo(-size * 0.48, size * 0.16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(232, 255, 242, 0.85)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "#020403";
+      ctx.fillRect(-size * 0.16, -size * 0.04, size * 0.32, size * 0.16);
+      if (enemy.capturedShip) {
+        ctx.fillStyle = "#ffe66d";
+        ctx.shadowColor = "#ffe66d";
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.moveTo(0, size * 0.6);
+        ctx.lineTo(10, size * 0.86);
+        ctx.lineTo(0, size * 0.78);
+        ctx.lineTo(-10, size * 0.86);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawTractorBeam(enemy) {
+      if (!enemy.alive || !enemy.tractorActive) return;
+      const beamTop = enemy.y + 20;
+      const beamBottom = height - 74;
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(enemy.x - 16, beamTop);
+      ctx.lineTo(enemy.x + 16, beamTop);
+      ctx.lineTo(enemy.x + 82, beamBottom);
+      ctx.lineTo(enemy.x - 82, beamBottom);
+      ctx.closePath();
+      const beam = ctx.createLinearGradient(enemy.x, beamTop, enemy.x, beamBottom);
+      beam.addColorStop(0, "rgba(255, 230, 109, 0.34)");
+      beam.addColorStop(0.55, "rgba(57, 255, 136, 0.16)");
+      beam.addColorStop(1, "rgba(57, 255, 136, 0.02)");
+      ctx.fillStyle = beam;
+      ctx.shadowColor = "#ffe66d";
+      ctx.shadowBlur = 22;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 230, 109, 0.46)";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawBackground() {
+      ctx.fillStyle = "#030805";
+      ctx.fillRect(0, 0, width, height);
+
+      const gridSize = 52;
+      ctx.strokeStyle = "rgba(57, 255, 136, 0.08)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+
+      stars.forEach((star) => {
+        ctx.globalAlpha = star.alpha;
+        ctx.fillStyle = "#e8fff2";
+        ctx.fillRect(star.x, star.y, star.size, star.size);
+      });
+      ctx.globalAlpha = 1;
+
+      const glow = ctx.createRadialGradient(width / 2, height * 0.1, 20, width / 2, height * 0.1, height * 0.75);
+      glow.addColorStop(0, "rgba(57, 255, 136, 0.11)");
+      glow.addColorStop(1, "rgba(57, 255, 136, 0)");
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    function draw() {
+      ctx.save();
+      if (shake > 0) {
+        ctx.translate(rand(-shake, shake), rand(-shake, shake));
+      }
+
+      drawBackground();
+
+      bullets.forEach((bullet) => {
+        ctx.fillStyle = "#e8fff2";
+        ctx.shadowColor = "#39ff88";
+        ctx.shadowBlur = 18;
+        ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
+      });
+
+      enemyBullets.forEach((bullet) => {
+        ctx.fillStyle = "#ff4f7b";
+        ctx.shadowColor = "#ff4f7b";
+        ctx.shadowBlur = 16;
+        ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
+      });
+
+      enemies.forEach(drawTractorBeam);
+      enemies.forEach(drawEnemy);
+
+      particles.forEach((particle) => {
+        ctx.globalAlpha = clamp(particle.life / particle.maxLife, 0, 1);
+        ctx.fillStyle = particle.color;
+        ctx.shadowColor = particle.color;
+        ctx.shadowBlur = 12;
+        ctx.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
+      });
+      ctx.globalAlpha = 1;
+
+      const flicker = player.invincible > 0 && Math.floor(performance.now() / 100) % 2 === 0;
+      if (!flicker) {
+        drawShip(player.x, player.y, 1, twinFireActive ? "#ffe66d" : "#39ff88", player.invincible > 0);
+      }
+
+      ctx.restore();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "rgba(140, 207, 170, 0.86)";
+      ctx.font = "700 22px Segoe UI, system-ui, sans-serif";
+      ctx.textAlign = "center";
+      if (running && !paused && !gameOver && enemies.every((enemy) => !enemy.alive)) {
+        ctx.fillText("Wave Cleared", width / 2, height / 2);
+      }
+      if (running && !paused && !gameOver && twinFireActive) {
+        ctx.fillStyle = "rgba(255, 230, 109, 0.92)";
+        ctx.font = "800 20px Segoe UI, system-ui, sans-serif";
+        ctx.fillText("Twin Fire", width / 2, height - 26);
+      }
+    }
+
+    function loop(now) {
+      if (!running || paused) return;
+      const dt = Math.min(0.033, (now - lastTime) / 1000);
+      lastTime = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function pointerToCanvas(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (width / rect.width),
+        y: (event.clientY - rect.top) * (height / rect.height)
+      };
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (["ArrowLeft", "ArrowRight", " ", "Spacebar"].includes(event.key)) {
+        event.preventDefault();
+      }
+      if (event.key === "p" || event.key === "P") {
+        togglePause();
+        return;
+      }
+      keys.add(event.key);
+      if ((event.key === " " || event.key === "Spacebar") && !running) {
+        startGame();
+      }
+    });
+
+    document.addEventListener("keyup", (event) => {
+      keys.delete(event.key);
+    });
+
+    canvas.addEventListener("pointerdown", (event) => {
+      if (!running || gameOver) {
+        startGame();
+      }
+      canvas.setPointerCapture(event.pointerId);
+      touchActive = true;
+      touchFiring = true;
+      const point = pointerToCanvas(event);
+      player.x = clamp(point.x, 44, width - 44);
+    });
+
+    canvas.addEventListener("pointermove", (event) => {
+      if (!touchActive || !player) return;
+      const point = pointerToCanvas(event);
+      player.x = clamp(point.x, 44, width - 44);
+    });
+
+    canvas.addEventListener("pointerup", (event) => {
+      touchActive = false;
+      touchFiring = false;
+      if (canvas.hasPointerCapture(event.pointerId)) {
+        canvas.releasePointerCapture(event.pointerId);
+      }
+    });
+
+    canvas.addEventListener("pointercancel", () => {
+      touchActive = false;
+      touchFiring = false;
+    });
+
+    newGameButton.addEventListener("click", startGame);
+    pauseButton.addEventListener("click", togglePause);
+    messageButton.addEventListener("click", () => {
+      if (paused) {
+        togglePause();
+      } else {
+        startGame();
+      }
+    });
+
+    createStars();
+    resetPlayer();
+    draw();
+  </script>
+</body>
+</html>

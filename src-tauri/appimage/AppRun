@@ -1,0 +1,258 @@
+#!/bin/sh
+# 2048-apprun-preflight
+# Runs before the linuxdeploy AppRun. Does not install packages or bundle GPU libraries.
+# A library counts as present when the AppImage bundles it or the system provides it.
+
+set -u
+
+if [ -n "${APPDIR:-}" ]; then
+  app_dir=$APPDIR
+else
+  app_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+fi
+
+checked_libs="libEGL.so.1 libGLESv2.so.2 libwebkit2gtk-4.1.so.0"
+
+bundle_has() {
+  soname=$1
+  for dir in \
+    "$app_dir/usr/lib" \
+    "$app_dir/lib" \
+    "$app_dir/usr/lib64" \
+    "$app_dir/lib64"
+  do
+    if [ -e "$dir/$soname" ]; then
+      return 0
+    fi
+  done
+  for dir in "$app_dir"/usr/lib/*/ "$app_dir"/lib/*/ "$app_dir"/usr/lib64/*/ "$app_dir"/lib64/*/; do
+    if [ -d "$dir" ] && [ -e "$dir/$soname" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+bundle_ld_path() {
+  path=""
+  add_dir() {
+    if [ -d "$1" ]; then
+      if [ -z "$path" ]; then
+        path=$1
+      else
+        path="$path:$1"
+      fi
+    fi
+  }
+  add_dir "$app_dir/usr/lib"
+  add_dir "$app_dir/lib"
+  add_dir "$app_dir/usr/lib64"
+  add_dir "$app_dir/lib64"
+  for dir in "$app_dir"/usr/lib/*/ "$app_dir"/lib/*/ "$app_dir"/usr/lib64/*/ "$app_dir"/lib64/*/; do
+    add_dir "$dir"
+  done
+  if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    if [ -n "$path" ]; then
+      path="$path:$LD_LIBRARY_PATH"
+    else
+      path=$LD_LIBRARY_PATH
+    fi
+  fi
+  printf '%s' "$path"
+}
+
+system_has() {
+  soname=$1
+  ldconfig_bin=""
+  if command -v ldconfig >/dev/null 2>&1; then
+    ldconfig_bin=ldconfig
+  elif [ -x /sbin/ldconfig ]; then
+    ldconfig_bin=/sbin/ldconfig
+  elif [ -x /usr/sbin/ldconfig ]; then
+    ldconfig_bin=/usr/sbin/ldconfig
+  fi
+  if [ -n "$ldconfig_bin" ]; then
+    if "$ldconfig_bin" -p 2>/dev/null | grep -F "$soname " >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  for dir in \
+    /lib \
+    /lib64 \
+    /usr/lib \
+    /usr/lib64 \
+    /usr/local/lib \
+    /usr/local/lib64 \
+    /lib/x86_64-linux-gnu \
+    /usr/lib/x86_64-linux-gnu \
+    /lib/aarch64-linux-gnu \
+    /usr/lib/aarch64-linux-gnu \
+    /lib/i386-linux-gnu \
+    /usr/lib/i386-linux-gnu \
+    /lib/arm-linux-gnueabihf \
+    /usr/lib/arm-linux-gnueabihf \
+    /lib/riscv64-linux-gnu \
+    /usr/lib/riscv64-linux-gnu
+  do
+    if [ -e "$dir/$soname" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+lib_present() {
+  soname=$1
+  if bundle_has "$soname"; then
+    return 0
+  fi
+  system_has "$soname"
+}
+
+find_ldd() {
+  if command -v ldd >/dev/null 2>&1; then
+    command -v ldd
+    return 0
+  fi
+  if [ -x /usr/bin/ldd ]; then
+    printf '%s\n' /usr/bin/ldd
+    return 0
+  fi
+  if [ -x /bin/ldd ]; then
+    printf '%s\n' /bin/ldd
+    return 0
+  fi
+  return 1
+}
+
+find_binary() {
+  if [ -x "$app_dir/usr/bin/2048" ]; then
+    printf '%s\n' "$app_dir/usr/bin/2048"
+    return 0
+  fi
+  for candidate in "$app_dir"/usr/bin/* "$app_dir/AppRun.wrapped"; do
+    if [ -f "$candidate" ] && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Missing when ldd reports "not found", or when ldd never mentions the
+# library and it is in neither the AppImage nor the system.
+lib_missing() {
+  soname=$1
+  if [ -n "$ldd_out" ]; then
+    lines=$(printf '%s\n' "$ldd_out" | grep -F "$soname " || true)
+    if [ -n "$lines" ]; then
+      if printf '%s\n' "$lines" | grep -F 'not found' >/dev/null 2>&1 \
+        && ! printf '%s\n' "$lines" | grep -F '=> /' >/dev/null 2>&1; then
+        return 0
+      fi
+      return 1
+    fi
+  fi
+  if lib_present "$soname"; then
+    return 1
+  fi
+  return 0
+}
+
+os_field() {
+  key=$1
+  file=/etc/os-release
+  if [ ! -r "$file" ]; then
+    printf ''
+    return 0
+  fi
+  sed -n "s/^${key}=//p" "$file" | head -n 1 | tr -d '"'
+}
+
+has_token() {
+  blob=" $1 "
+  shift
+  for token in "$@"; do
+    case $blob in
+      *" $token "*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+install_hint() {
+  id=$(os_field ID | tr '[:upper:]' '[:lower:]')
+  like=$(os_field ID_LIKE | tr '[:upper:]' '[:lower:]')
+  family="$id $like"
+  apt_cmd="sudo apt install libegl1 libgles2 libwebkit2gtk-4.1-0"
+  pacman_cmd="sudo pacman -S mesa webkit2gtk-4.1"
+  dnf_cmd="sudo dnf install mesa-libEGL webkit2gtk4.1"
+
+  if has_token "$family" debian ubuntu; then
+    printf '%s\n' "$apt_cmd"
+  elif has_token "$family" arch manjaro; then
+    printf '%s\n' "$pacman_cmd"
+  elif has_token "$family" fedora; then
+    printf '%s\n' "$dnf_cmd"
+  else
+    printf '%s\n' "Debian/Ubuntu: $apt_cmd"
+    printf '%s\n' "Arch: $pacman_cmd"
+    printf '%s\n' "Fedora: $dnf_cmd"
+  fi
+}
+
+show_error() {
+  message=$1
+  if command -v zenity >/dev/null 2>&1; then
+    if zenity --error --title="2048" --width=560 --text="$message" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  if command -v kdialog >/dev/null 2>&1; then
+    if kdialog --title "2048" --error "$message" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  if command -v notify-send >/dev/null 2>&1; then
+    if notify-send --app-name="2048" "2048" "$message" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  printf '%s\n' "$message" >&2
+}
+
+ldd_out=""
+real_bin=$(find_binary || true)
+ldd_bin=$(find_ldd || true)
+if [ -n "$real_bin" ] && [ -n "$ldd_bin" ]; then
+  ld_path=$(bundle_ld_path)
+  ldd_out=$(LD_LIBRARY_PATH="$ld_path" LC_ALL=C "$ldd_bin" "$real_bin" 2>&1 || true)
+fi
+
+missing=""
+for soname in $checked_libs; do
+  if lib_missing "$soname"; then
+    missing="${missing}${soname}
+"
+  fi
+done
+
+if [ -n "$missing" ]; then
+  message="2048 cannot start. These libraries could not be found:
+
+${missing}
+Install them, then launch 2048 again:
+$(install_hint)
+
+2048 will not install packages for you."
+  show_error "$message"
+  exit 1
+fi
+
+orig="$app_dir/AppRun.orig"
+if [ ! -x "$orig" ]; then
+  printf '%s\n' "2048 is missing its launcher (AppRun.orig)." >&2
+  exit 1
+fi
+
+exec "$orig" "$@"

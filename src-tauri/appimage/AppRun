@@ -1,6 +1,7 @@
 #!/bin/sh
 # 2048-apprun-preflight
 # Runs before the linuxdeploy AppRun. Does not install packages or bundle GPU libraries.
+# A library counts as present when the AppImage bundles it or the system provides it.
 
 set -u
 
@@ -10,7 +11,57 @@ else
   app_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
 fi
 
-lib_present() {
+checked_libs="libEGL.so.1 libGLESv2.so.2 libwebkit2gtk-4.1.so.0"
+
+bundle_has() {
+  soname=$1
+  for dir in \
+    "$app_dir/usr/lib" \
+    "$app_dir/lib" \
+    "$app_dir/usr/lib64" \
+    "$app_dir/lib64"
+  do
+    if [ -e "$dir/$soname" ]; then
+      return 0
+    fi
+  done
+  for dir in "$app_dir"/usr/lib/*/ "$app_dir"/lib/*/ "$app_dir"/usr/lib64/*/ "$app_dir"/lib64/*/; do
+    if [ -d "$dir" ] && [ -e "$dir/$soname" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+bundle_ld_path() {
+  path=""
+  add_dir() {
+    if [ -d "$1" ]; then
+      if [ -z "$path" ]; then
+        path=$1
+      else
+        path="$path:$1"
+      fi
+    fi
+  }
+  add_dir "$app_dir/usr/lib"
+  add_dir "$app_dir/lib"
+  add_dir "$app_dir/usr/lib64"
+  add_dir "$app_dir/lib64"
+  for dir in "$app_dir"/usr/lib/*/ "$app_dir"/lib/*/ "$app_dir"/usr/lib64/*/ "$app_dir"/lib64/*/; do
+    add_dir "$dir"
+  done
+  if [ -n "${LD_LIBRARY_PATH:-}" ]; then
+    if [ -n "$path" ]; then
+      path="$path:$LD_LIBRARY_PATH"
+    else
+      path=$LD_LIBRARY_PATH
+    fi
+  fi
+  printf '%s' "$path"
+}
+
+system_has() {
   soname=$1
   ldconfig_bin=""
   if command -v ldconfig >/dev/null 2>&1; then
@@ -20,13 +71,11 @@ lib_present() {
   elif [ -x /usr/sbin/ldconfig ]; then
     ldconfig_bin=/usr/sbin/ldconfig
   fi
-
   if [ -n "$ldconfig_bin" ]; then
     if "$ldconfig_bin" -p 2>/dev/null | grep -F "$soname " >/dev/null 2>&1; then
       return 0
     fi
   fi
-
   for dir in \
     /lib \
     /lib64 \
@@ -50,6 +99,64 @@ lib_present() {
     fi
   done
   return 1
+}
+
+lib_present() {
+  soname=$1
+  if bundle_has "$soname"; then
+    return 0
+  fi
+  system_has "$soname"
+}
+
+find_ldd() {
+  if command -v ldd >/dev/null 2>&1; then
+    command -v ldd
+    return 0
+  fi
+  if [ -x /usr/bin/ldd ]; then
+    printf '%s\n' /usr/bin/ldd
+    return 0
+  fi
+  if [ -x /bin/ldd ]; then
+    printf '%s\n' /bin/ldd
+    return 0
+  fi
+  return 1
+}
+
+find_binary() {
+  if [ -x "$app_dir/usr/bin/2048" ]; then
+    printf '%s\n' "$app_dir/usr/bin/2048"
+    return 0
+  fi
+  for candidate in "$app_dir"/usr/bin/* "$app_dir/AppRun.wrapped"; do
+    if [ -f "$candidate" ] && [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Missing when ldd reports "not found", or when ldd never mentions the
+# library and it is in neither the AppImage nor the system.
+lib_missing() {
+  soname=$1
+  if [ -n "$ldd_out" ]; then
+    lines=$(printf '%s\n' "$ldd_out" | grep -F "$soname " || true)
+    if [ -n "$lines" ]; then
+      if printf '%s\n' "$lines" | grep -F 'not found' >/dev/null 2>&1 \
+        && ! printf '%s\n' "$lines" | grep -F '=> /' >/dev/null 2>&1; then
+        return 0
+      fi
+      return 1
+    fi
+  fi
+  if lib_present "$soname"; then
+    return 1
+  fi
+  return 0
 }
 
 os_field() {
@@ -114,16 +221,24 @@ show_error() {
   printf '%s\n' "$message" >&2
 }
 
+ldd_out=""
+real_bin=$(find_binary || true)
+ldd_bin=$(find_ldd || true)
+if [ -n "$real_bin" ] && [ -n "$ldd_bin" ]; then
+  ld_path=$(bundle_ld_path)
+  ldd_out=$(LD_LIBRARY_PATH="$ld_path" LC_ALL=C "$ldd_bin" "$real_bin" 2>&1 || true)
+fi
+
 missing=""
-for soname in libEGL.so.1 libGLESv2.so.2 libwebkit2gtk-4.1.so.0; do
-  if ! lib_present "$soname"; then
+for soname in $checked_libs; do
+  if lib_missing "$soname"; then
     missing="${missing}${soname}
 "
   fi
 done
 
 if [ -n "$missing" ]; then
-  message="2048 cannot start. These libraries are not installed:
+  message="2048 cannot start. These libraries could not be found:
 
 ${missing}
 Install them, then launch 2048 again:

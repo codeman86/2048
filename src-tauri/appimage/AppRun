@@ -1,0 +1,143 @@
+#!/bin/sh
+# 2048-apprun-preflight
+# Runs before the linuxdeploy AppRun. Does not install packages or bundle GPU libraries.
+
+set -u
+
+if [ -n "${APPDIR:-}" ]; then
+  app_dir=$APPDIR
+else
+  app_dir=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+fi
+
+lib_present() {
+  soname=$1
+  ldconfig_bin=""
+  if command -v ldconfig >/dev/null 2>&1; then
+    ldconfig_bin=ldconfig
+  elif [ -x /sbin/ldconfig ]; then
+    ldconfig_bin=/sbin/ldconfig
+  elif [ -x /usr/sbin/ldconfig ]; then
+    ldconfig_bin=/usr/sbin/ldconfig
+  fi
+
+  if [ -n "$ldconfig_bin" ]; then
+    if "$ldconfig_bin" -p 2>/dev/null | grep -F "$soname " >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+
+  for dir in \
+    /lib \
+    /lib64 \
+    /usr/lib \
+    /usr/lib64 \
+    /usr/local/lib \
+    /usr/local/lib64 \
+    /lib/x86_64-linux-gnu \
+    /usr/lib/x86_64-linux-gnu \
+    /lib/aarch64-linux-gnu \
+    /usr/lib/aarch64-linux-gnu \
+    /lib/i386-linux-gnu \
+    /usr/lib/i386-linux-gnu \
+    /lib/arm-linux-gnueabihf \
+    /usr/lib/arm-linux-gnueabihf \
+    /lib/riscv64-linux-gnu \
+    /usr/lib/riscv64-linux-gnu
+  do
+    if [ -e "$dir/$soname" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+os_field() {
+  key=$1
+  file=/etc/os-release
+  if [ ! -r "$file" ]; then
+    printf ''
+    return 0
+  fi
+  sed -n "s/^${key}=//p" "$file" | head -n 1 | tr -d '"'
+}
+
+has_token() {
+  blob=" $1 "
+  shift
+  for token in "$@"; do
+    case $blob in
+      *" $token "*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+install_hint() {
+  id=$(os_field ID | tr '[:upper:]' '[:lower:]')
+  like=$(os_field ID_LIKE | tr '[:upper:]' '[:lower:]')
+  family="$id $like"
+  apt_cmd="sudo apt install libegl1 libgles2 libwebkit2gtk-4.1-0"
+  pacman_cmd="sudo pacman -S mesa webkit2gtk-4.1"
+  dnf_cmd="sudo dnf install mesa-libEGL webkit2gtk4.1"
+
+  if has_token "$family" debian ubuntu; then
+    printf '%s\n' "$apt_cmd"
+  elif has_token "$family" arch manjaro; then
+    printf '%s\n' "$pacman_cmd"
+  elif has_token "$family" fedora; then
+    printf '%s\n' "$dnf_cmd"
+  else
+    printf '%s\n' "Debian/Ubuntu: $apt_cmd"
+    printf '%s\n' "Arch: $pacman_cmd"
+    printf '%s\n' "Fedora: $dnf_cmd"
+  fi
+}
+
+show_error() {
+  message=$1
+  if command -v zenity >/dev/null 2>&1; then
+    if zenity --error --title="2048" --width=560 --text="$message" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  if command -v kdialog >/dev/null 2>&1; then
+    if kdialog --title "2048" --error "$message" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  if command -v notify-send >/dev/null 2>&1; then
+    if notify-send --app-name="2048" "2048" "$message" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  printf '%s\n' "$message" >&2
+}
+
+missing=""
+for soname in libEGL.so.1 libGLESv2.so.2 libwebkit2gtk-4.1.so.0; do
+  if ! lib_present "$soname"; then
+    missing="${missing}${soname}
+"
+  fi
+done
+
+if [ -n "$missing" ]; then
+  message="2048 cannot start. These libraries are not installed:
+
+${missing}
+Install them, then launch 2048 again:
+$(install_hint)
+
+2048 will not install packages for you."
+  show_error "$message"
+  exit 1
+fi
+
+orig="$app_dir/AppRun.orig"
+if [ ! -x "$orig" ]; then
+  printf '%s\n' "2048 is missing its launcher (AppRun.orig)." >&2
+  exit 1
+fi
+
+exec "$orig" "$@"

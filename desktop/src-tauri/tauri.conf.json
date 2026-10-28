@@ -10,10 +10,10 @@
   "app": {
     "windows": [
       {
-        "title": "2048 — Cody Hadley",
+        "title": "2048",
         "url": "index.html",
-        "width": 1200,
-        "height": 900,
+        "width": 960,
+        "height": 880,
         "minWidth": 480,
         "minHeight": 700,
         "resizable": true,

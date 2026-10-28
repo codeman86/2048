@@ -4,48 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#141614">
-  <script src="theme-init.js"></script>
-  <title>2048 — Cody Hadley</title>
-  <meta name="description" content="Play 2048 in the browser. Arrow keys, WASD, or swipe.">
-  <meta name="author" content="Cody Hadley">
+  <title>2048</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="base.css">
   <link rel="stylesheet" href="game.css">
+  <link rel="stylesheet" href="app.css">
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
-  <div class="marks" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
-  <header class="site-header">
-    <div class="wrap header__row">
-      <a class="brand" href="#home">codyhadley.xyz<span class="sr-only">, home</span></a>
-      <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="true" aria-label="Switch to light mode" title="Switch to light mode">
-        <svg class="theme-toggle__icon when-dark" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"></circle>
-          <path d="M12 2.5v2.25M12 19.25V21.5M2.5 12h2.25M19.25 12H21.5M5.1 5.1l1.6 1.6M17.3 17.3l1.6 1.6M18.9 5.1l-1.6 1.6M6.7 17.3l-1.6 1.6"></path>
-        </svg>
-        <svg class="theme-toggle__icon when-light" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.25 14.6A7.4 7.4 0 0 1 9.4 3.75 6.35 6.35 0 1 0 20.25 14.6z"></path>
-        </svg>
-      </button>
-      <p id="theme-status" class="sr-only" aria-live="polite"></p>
-      <nav class="site-nav" aria-label="Main">
-        <a href="#about"> About </a><a href="#projects"> Projects </a><div class="nav-tools">
-          <a href="#tools" aria-current="true"> Tools </a>
-          <button type="button" class="nav-tools__toggle" aria-expanded="false" aria-controls="tools-menu" aria-haspopup="true" aria-label="Show tools"></button>
-          <ul id="tools-menu" class="nav-tools__menu">
-            <li><a href="#2048" aria-current="page"> 2048 </a></li>
-            <li><a href="#resume-architect"> Resume Architect </a></li>
-          </ul>
-        </div><a href="#articles"> Articles </a><a href="#contact"> Contact </a>
-      </nav>
-    </div>
-  </header>
-  <main id="main" tabindex="-1">
+  <main id="main">
     <section class="section game-page" aria-labelledby="page-title">
       <div class="wrap game-wrap">
-        <p class="kicker"><a href="#tools">Tools</a></p>
         <h1 id="page-title">2048</h1>
-        <p class="lede">Arrow keys or WASD. Swipe the board on a phone.</p>
         <div class="game-scores" aria-live="polite">
           <p class="game-score">
             <span>Score</span>
@@ -71,14 +40,6 @@
       </div>
     </section>
   </main>
-  <footer class="site-footer">
-    <div class="wrap footer__inner">
-      <p class="footer__github"><a href="#github" rel="me">github.com/codeman86</a></p>
-      <p class="colophon">This is a Static Site with no trackers.</p>
-      <p class="footer__copy">© 2026 Cody Hadley</p>
-    </div>
-  </footer>
-  <script src="shell.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -40,7 +40,7 @@ This project is ready for static hosting with GitHub Pages. After publishing the
 
 ## Desktop app (Linux)
 
-The installable app follows the 2048 page on [codyhadley.xyz/tools/2048](https://codyhadley.xyz/tools/2048): the same layout, colors, fonts, and tile motion. `2048.html` in this repository is the Gridline Arcade edition and stays as it is. Packaging is under `desktop/`, separate from those static pages.
+The installable app uses the dark theme, colors, fonts, and tile motion from [codyhadley.xyz/tools/2048](https://codyhadley.xyz/tools/2048). The window shows the title, score, best score, New game button, and board. `2048.html` in this repository is the Gridline Arcade edition and stays as it is. Packaging is under `desktop/`, separate from those static pages.
 
 ### Wrapper
 

@@ -1,0 +1,26 @@
+/* Desktop window: the game only, using the site's dark theme. */
+:root {
+  --header-h: 0px;
+}
+
+body {
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body::before {
+  top: 0;
+}
+
+main {
+  flex: none;
+  width: min(100%, 40rem);
+}
+
+.game-page {
+  width: 100%;
+  padding-top: clamp(1.25rem, 3vh, 2rem);
+  padding-bottom: clamp(1.25rem, 3vh, 2rem);
+}

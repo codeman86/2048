@@ -70,18 +70,20 @@ GitHub Actions (`.github/workflows/desktop.yml`) builds the same AppImage and up
 
 ### Install and run
 
-```bash
-chmod +x desktop/src-tauri/target/release/bundle/appimage/*.AppImage
-mkdir -p "$HOME/Applications"
-cp desktop/src-tauri/target/release/bundle/appimage/*.AppImage "$HOME/Applications/2048.AppImage"
-"$HOME/Applications/2048.AppImage"
-```
-
-Menu entry and icon for that AppImage:
+No sudo. This copies the AppImage to `~/Applications/2048.AppImage`, installs the icon under `~/.local/share/icons/hicolor`, and writes `~/.local/share/applications/xyz.codyhadley.game2048.desktop` with `Categories=Game;LogicGame;` so XFCE lists it in Games.
 
 ```bash
-bash desktop/scripts/install-user-entry.sh "$HOME/Applications/2048.AppImage"
+bash packaging/install.sh
+~/Applications/2048.AppImage
 ```
+
+Pass a downloaded artifact when it is not the local build output:
+
+```bash
+bash packaging/install.sh /path/to/2048_0.2.0_amd64.AppImage
+```
+
+GitHub Actions uploads that file as the `2048-linux-appimage` artifact.
 
 Arrow keys or WASD slide the tiles. A pointer swipe on the board does the same. New game starts over. The best score stays in the app's local WebKit profile.
 

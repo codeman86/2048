@@ -27,6 +27,15 @@ fi
 cp "$preflight" "$appdir/AppRun"
 chmod +x "$appdir/AppRun" "$appdir/AppRun.orig"
 
+# XFCE files this under Games when both the main category and LogicGame are set.
+find "$appdir" -name '*.desktop' -type f -print0 | while IFS= read -r -d '' desktop_file; do
+  if grep -q '^Categories=' "$desktop_file"; then
+    sed -i 's/^Categories=.*/Categories=Game;LogicGame;/' "$desktop_file"
+  else
+    printf '%s\n' 'Categories=Game;LogicGame;' >> "$desktop_file"
+  fi
+done
+
 arch=$(uname -m)
 case "$arch" in
   x86_64) tool_name=appimagetool-x86_64.AppImage ;;
@@ -58,6 +67,7 @@ grep -q 'libGLESv2.so.2' "$rootfs/AppRun"
 grep -q 'libwebkit2gtk-4.1.so.0' "$rootfs/AppRun"
 grep -q 'AppRun.orig' "$rootfs/AppRun"
 test -x "$rootfs/AppRun.orig"
+grep -q '^Categories=Game;LogicGame;$' "$rootfs/2048.desktop"
 
 if find "$rootfs" \( -name 'libEGL.so' -o -name 'libEGL.so.*' -o -name 'libGLESv2.so' -o -name 'libGLESv2.so.*' \) -print -quit | grep -q .; then
   echo "GPU libraries were bundled into the AppImage" >&2

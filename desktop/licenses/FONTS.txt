@@ -1,0 +1,7 @@
+Fraunces, Source Sans 3, and IBM Plex Mono are bundled so the desktop app can match codyhadley.xyz offline. They are licensed under the SIL Open Font License, Version 1.1. The license text is in OFL-1.1.txt (Adobe's Source Sans license file, which includes the OFL).
+
+Fraunces — Copyright 2020 The Fraunces Project Authors.
+Source Sans 3 — Copyright 2010-2024 Adobe, with Reserved Font Name "Source".
+IBM Plex Mono — Copyright 2017 IBM Corp.
+
+The font files are unmodified.

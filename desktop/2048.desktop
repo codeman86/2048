@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=2048
+GenericName=2048 puzzle
+Comment=Slide matching tiles until you reach 2048
+Exec=2048
+Icon=xyz.codyhadley.game2048
+Terminal=false
+Categories=Game;LogicGame;
+Keywords=2048;puzzle;
+StartupNotify=true
+StartupWMClass=2048

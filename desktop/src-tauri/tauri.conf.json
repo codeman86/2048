@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "2048",
+  "mainBinaryName": "2048",
+  "version": "0.2.0",
+  "identifier": "xyz.codyhadley.game2048",
+  "build": {
+    "frontendDist": "../www"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "2048",
+        "url": "index.html",
+        "width": 960,
+        "height": 880,
+        "minWidth": 480,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true,
+        "backgroundColor": "#141614"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost; font-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["appimage"],
+    "category": "Game",
+    "shortDescription": "Slide matching tiles until you reach 2048",
+    "longDescription": "Offline 2048 with the codyhadley.xyz board. Arrow keys, WASD, or swipe. The best score stays on this computer.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#141614">
+  <title>2048</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="base.css">
+  <link rel="stylesheet" href="game.css">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <main id="main">
+    <section class="section game-page" aria-labelledby="page-title">
+      <div class="wrap game-wrap">
+        <h1 id="page-title">2048</h1>
+        <div class="game-scores" aria-live="polite">
+          <p class="game-score">
+            <span>Score</span>
+            <strong id="score">0</strong>
+          </p>
+          <p class="game-score">
+            <span>Best</span>
+            <strong id="best">0</strong>
+          </p>
+        </div>
+        <button type="button" class="game-new" id="new-game">New game</button>
+        <div class="game-panel">
+          <div class="game-board" id="board" role="grid" aria-label="2048 board">
+            <div class="game-cells" id="cells"></div>
+            <div class="game-tiles" id="tile-layer"></div>
+          </div>
+          <div class="game-message" id="game-message" hidden>
+            <strong id="game-message-title">Game over</strong>
+            <span id="game-message-text">No more moves remain.</span>
+            <button type="button" id="game-message-button">New game</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>

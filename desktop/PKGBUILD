@@ -1,0 +1,26 @@
+# Maintainer: Cody Hadley
+pkgname=2048
+pkgver=0.2.0
+pkgrel=1
+pkgdesc="Offline 2048 desktop game, matching codyhadley.xyz"
+arch=('x86_64')
+url='https://codyhadley.xyz/tools/2048'
+license=('MIT')
+depends=('webkit2gtk-4.1' 'gtk3' 'mesa')
+makedepends=('rust' 'cargo' 'pkgconf' 'webkit2gtk-4.1' 'gtk3' 'base-devel' 'cairo' 'pango' 'gdk-pixbuf2' 'glib2')
+options=('!lto' '!debug')
+
+build() {
+  cd "$startdir/src-tauri"
+  cargo build --release --locked
+}
+
+package() {
+  install -Dm755 "$startdir/src-tauri/target/release/2048" "$pkgdir/usr/bin/2048"
+  install -Dm644 "$startdir/2048.desktop" "$pkgdir/usr/share/applications/xyz.codyhadley.game2048.desktop"
+  install -Dm644 "$startdir/src-tauri/icons/32x32.png" "$pkgdir/usr/share/icons/hicolor/32x32/apps/xyz.codyhadley.game2048.png"
+  install -Dm644 "$startdir/src-tauri/icons/128x128.png" "$pkgdir/usr/share/icons/hicolor/128x128/apps/xyz.codyhadley.game2048.png"
+  install -Dm644 "$startdir/src-tauri/icons/128x128@2x.png" "$pkgdir/usr/share/icons/hicolor/256x256/apps/xyz.codyhadley.game2048.png"
+  install -Dm644 "$startdir/src-tauri/icons/icon.png" "$pkgdir/usr/share/icons/hicolor/512x512/apps/xyz.codyhadley.game2048.png"
+  install -Dm644 "$startdir/../LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
